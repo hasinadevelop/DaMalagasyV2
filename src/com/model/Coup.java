@@ -3,22 +3,24 @@
  */
 package com.model;
 
+import java.io.Serializable;
+
 /**
  * @author Hasina Develop
  *
  */
-public class Coup {
+public class Coup implements Serializable {
 	
-	int is, js, ie, je, nextTour;
+	int is, js, ie, je, nextTour, prevTour;
 	Piece piece = null;
 	Piece piece_mange = null;
 	String type = "start";
-	boolean coupDame;
+	boolean coupDame, suiteCoup, hasSuite;
 
 	/**
 	 * 
 	 */
-	public Coup(int is, int js, int ie, int je, Piece piece, Piece piece_mange, boolean coupDame) {
+	public Coup(int is, int js, int ie, int je, Piece piece, Piece piece_mange, boolean suiteCoup, boolean hasSuite, boolean coupDame) {
 		this.type = "coup";
 		this.is = is;
 		this.ie = ie;
@@ -26,6 +28,8 @@ public class Coup {
 		this.je = je;
 		this.piece = piece;
 		this.piece_mange = piece_mange;
+		this.suiteCoup = suiteCoup;
+		this.hasSuite = hasSuite;
 		this.coupDame = coupDame;
 	}
 	
@@ -150,12 +154,38 @@ public class Coup {
 	public int getNextTour() {
 		return nextTour;
 	}
+	
+	public void setPrevTour(int tour) {
+		this.prevTour = tour;
+		
+	}
 
+	/**
+	 * @return the nextTour
+	 */
+	public int getPrevTour() {
+		return prevTour;
+	}
+
+	/**
+	 * @return the suiteCoup
+	 */
+	public boolean isSuite() {
+		return this.suiteCoup;
+	}
+	
+	/**
+	 * @return the hasSuite
+	 */
+	public boolean hasSuite() {
+		return this.hasSuite;
+	}
+	
 	/**
 	 * @return the coupDame
 	 */
 	public boolean isCoupDame() {
-		return coupDame;
+		return this.coupDame;
 	}
 
 	/**
@@ -163,6 +193,11 @@ public class Coup {
 	 */
 	public void setCoupDame(boolean coupDame) {
 		this.coupDame = coupDame;
+	}
+
+	public void setHasSuite(boolean hasSuite) {
+		this.hasSuite = hasSuite;
+		
 	}
 	
 }

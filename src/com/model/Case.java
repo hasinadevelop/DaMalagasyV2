@@ -4,6 +4,7 @@
 package com.model;
 
 import java.awt.Color;
+import java.io.Serializable;
 
 import javax.swing.border.LineBorder;
 
@@ -14,7 +15,7 @@ import com.Response;
  * @author Hasina Develop
  *
  */
-public class Case extends AbstractJPanelModel {
+public class Case extends AbstractJPanelModel implements Serializable {
 
 	private int i;
 	private int j;
@@ -32,7 +33,7 @@ public class Case extends AbstractJPanelModel {
 	 */
 	@SuppressWarnings("deprecation")
 	public boolean hasChild() {
-		return this.countComponents() != 0;
+		return this.getComponentCount() != 0;
 	}
 
 	public Piece getChild() {

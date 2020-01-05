@@ -3,6 +3,7 @@
  */
 package com;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import com.model.Case;
@@ -13,7 +14,7 @@ import com.model.Dame;
  * @author Hasina Develop
  *
  */
-public class Response {
+public class Response implements Serializable {
 
 	private String id;
 	
@@ -67,6 +68,10 @@ public class Response {
 	public Dame getEtat() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public boolean isSuite() {
+		return false;
 	}
 
 }

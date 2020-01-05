@@ -8,11 +8,13 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.GraphicsConfiguration;
 import java.awt.HeadlessException;
+import java.awt.Insets;
 
 import javax.swing.JFrame;
 
 import com.Response;
 import com.model.Case;
+import com.model.Coup;
 import com.model.Dame;
 import com.model.Piece;
 import com.observer.Observer;
@@ -48,6 +50,18 @@ import javax.swing.JTextPane;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
 /**
  * @author Hasina Develop
  *
@@ -79,12 +93,12 @@ public class Table extends JFrame implements Observer{
 		menu = new Menu();
 		this.setJMenuBar(menu);
 		menu.addObserver(this);
-		this.init();
+		this.init(new Dame());
 		this.setVisible(true);
 	}
 	
-	private void init () {
-		this.dame = new Dame();
+	private void init (Dame dame) {
+		this.dame = dame;
 		this.dame.addObserver(this);
 		
 		JPanel panel_bottom = new JPanel();
@@ -94,37 +108,54 @@ public class Table extends JFrame implements Observer{
 		panel_bottom.setLayout(null);
 		
 		list_coups = new JComboBox();
-		list_coups.setToolTipText("List of coups");
+		list_coups.setToolTipText("Liste des coups");
 		list_coups.setMaximumRowCount(100);
 		list_coups.setBackground(new Color(255, 255, 255));
 		list_coups.setForeground(new Color(128, 128, 128));
 		list_coups.setFont(new Font("Verdana", Font.BOLD, 12));
-		list_coups.setModel(new DefaultComboBoxModel(new String[] {"< Start >"}));
-		list_coups.setBounds(76, 9, 431, 30);
+		if(dame.getListCoups().isEmpty()) {
+			list_coups.setModel(new DefaultComboBoxModel(new String[] {"< Début >"}));
+		} else {
+			ArrayList<Coup> coups = dame.getListCoups();
+			String[] model = new String[coups.size()];
+			for(int i=0; i<coups.size(); i++) {
+				model[i] = coups.get(i).getChaine();
+			}
+			list_coups.setModel(new DefaultComboBoxModel(model));
+		}
+		list_coups.setBounds(80, 9, 427, 30);
 		panel_bottom.add(list_coups);
 		
-		btn_undo = new JButton("Undo");
+		btn_undo = new JButton("Annuler");
 		btn_undo.setEnabled(false);
+		if(dame.getListCoups().size() != 1) {
+			btn_undo.setEnabled(true);
+		}
 		btn_undo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				dame.undo();
 			}
 		});
-		btn_undo.setFont(new Font("Tahoma", Font.PLAIN, 8));
+		btn_undo.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		btn_undo.setMargin(new Insets(2,0,2,0));
 		btn_undo.setBackground(new Color(255, 255, 255));
-		btn_undo.setBounds(10, 9, 59, 30);
+		btn_undo.setBounds(10, 9, 63, 30);
 		panel_bottom.add(btn_undo);
 		
-		btn_redo = new JButton("Redo");
+		btn_redo = new JButton("Rétablir");
 		btn_redo.setEnabled(false);
+		if(dame.getLastCoups() != dame.getListCoups().get(dame.getListCoups().size()-1)) {
+			btn_redo.setEnabled(true);
+		}
 		btn_redo.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				dame.redo();
 			}
 		});
-		btn_redo.setFont(new Font("Tahoma", Font.PLAIN, 8));
+		btn_redo.setFont(new Font("Tahoma", Font.PLAIN, 12));
+		btn_redo.setMargin(new Insets(2,0,2,0));
 		btn_redo.setBackground(new Color(255, 255, 255));
-		btn_redo.setBounds(517, 9, 59, 30);
+		btn_redo.setBounds(513, 9, 63, 30);
 		panel_bottom.add(btn_redo);
 		
 		JPanel panel_top = new JPanel();
@@ -133,12 +164,12 @@ public class Table extends JFrame implements Observer{
 		container.add(panel_top);
 		panel_top.setLayout(null);
 		
-		lblTour = new JLabel("White to play");
+		lblTour = this.dame.getTour() == 1 ? new JLabel("Au blanc de jouer") : new JLabel("Au noir de jouer");
 		lblTour.setForeground(Color.WHITE);
 		lblTour.setBackground(Color.DARK_GRAY);
 		lblTour.setFont(new Font("Tahoma", Font.BOLD, 14));
 		lblTour.setHorizontalAlignment(SwingConstants.CENTER);
-		lblTour.setBounds(223, 0, 117, 44);
+		lblTour.setBounds(223, 0, 125, 44);
 		panel_top.add(lblTour);
 		
 		btnStop = new JButton("Stop");
@@ -148,14 +179,17 @@ public class Table extends JFrame implements Observer{
 				int tour_suivant = tour == 0 ? 1 : 0;
 				dame.isDame();
 				dame.reColor();
-				dame.reinit();
+				dame.reinit(true);
 			}
 		});
 		btnStop.setEnabled(false);
+		if(dame.getLastCoups().hasSuite()) {
+			btnStop.setEnabled(true);
+		}
 		btnStop.setForeground(Color.WHITE);
 		btnStop.setBackground(Color.DARK_GRAY);
 		btnStop.setBounds(350, 13, 63, 23);
-		panel_top.add(btnStop);
+//		panel_top.add(btnStop);
 		
 		JPanel panel_left = new JPanel();
 		panel_left.setBackground(Color.DARK_GRAY);
@@ -204,16 +238,16 @@ public class Table extends JFrame implements Observer{
 				pieces.get(i).get(j).addMouseListener(new MouseAdapter(){
 					public void mouseClicked ( MouseEvent e ) {
 						dame.reColor();
-						dame.setSelected_piece((Piece) e.getComponent());
+						dame.setSelected_piece((Piece) e.getComponent(), false);
 					}
 				});
 			}
 		}
 	}
 	
-	public void reInit () {
+	public void reInit (Dame dame) {
 		this.container.removeAll();
-		this.init();
+		this.init(dame);
 		this.container.repaint();
 	}
 
@@ -225,7 +259,19 @@ public class Table extends JFrame implements Observer{
 				for ( Case pc : res.possiblesCoups() ) {
 					pc.addMouseListener(new MouseAdapter(){
 						public void mouseClicked ( MouseEvent e ) {
-							dame.deplaceSelected_piece((Case) e.getComponent());
+							dame.deplaceSelected_piece((Case) e.getComponent(), false);
+						}
+					});
+				}
+			} catch ( Exception e1 ) {}
+		}
+		
+		if ( this.res.getId() == "spc" ) {
+			try {
+				for ( Case pc : res.possiblesCoups() ) {
+					pc.addMouseListener(new MouseAdapter(){
+						public void mouseClicked ( MouseEvent e ) {
+							dame.deplaceSelected_piece((Case) e.getComponent(), true);
 						}
 					});
 				}
@@ -238,21 +284,68 @@ public class Table extends JFrame implements Observer{
 		
 		if ( this.res.getId() == "winner" ) {
 			if ( res.hasWinner() ) {
-				System.exit(0);
+				Dialog d = new Dialog(this, "Fin de la partie", true, res.winner());
+				if(d.show_dialog() == "new") {
+					this.reInit(new Dame());
+				}
 			}
 		}
 		
 		if ( this.res.getId() == "changeTour" ) {
 			if ( this.res.getTour() == 0 ) {
-				lblTour.setText("Black to play");
+				lblTour.setText("Au noir de jouer");
 			} else if ( this.res.getTour() == 1 ) {
-				lblTour.setText("White to play");
+				lblTour.setText("Au blanc de jouer");
 			}
 			this.btnStop.setEnabled(false);
+			if ( this.res.isSuite() ) {
+				this.btnStop.setEnabled(true);
+			}
 		}
 		
 		if ( this.res.getId() == "quit" ) { System.exit(0); }
-		if ( this.res.getId() == "newGame") { this.reInit(); }
+		if ( this.res.getId() == "newGame") { this.reInit(new Dame()); }
+		if ( this.res.getId() == "saveGame") {
+			ObjectOutputStream oos;
+			try {
+				oos = new ObjectOutputStream(
+					new BufferedOutputStream(
+						new FileOutputStream(
+							new File("save.damalagasy")
+						)
+					)
+				);
+				oos.writeObject(this.dame);
+				oos.close();
+				
+			} catch (Exception e) {
+				
+			}
+			
+		}
+		if ( this.res.getId() == "loadGame") {
+			ObjectInputStream ois;
+			try {
+				ois = new ObjectInputStream(
+					new BufferedInputStream(
+						new FileInputStream(
+							new File("save.damalagasy")
+						)
+					)
+				);
+				this.reInit((Dame) ois.readObject());
+			} catch(Exception e) {
+				
+			}
+			
+			
+		}
+		if ( this.res.getId() == "about") {
+			new Aide(this, "A Propos", true, "A Propos");
+		}
+		if ( this.res.getId() == "aide") {
+			new Aide(this, "Comment Jouer ?", true, "Comment Jouer ?");
+		}
 		if ( this.res.getId() == "listCoups" ) {
 			this.list_coups.setModel(new DefaultComboBoxModel());
 			this.list_coups.setModel(new DefaultComboBoxModel(this.res.listCoups().toArray()));
@@ -269,6 +362,7 @@ public class Table extends JFrame implements Observer{
 			} else {
 				this.btn_redo.setEnabled(true);
 			}
+			
 			this.list_coups.setSelectedIndex(this.dame.getIndexLastCoups());
 		}
 		if ( this.res.getId() == "redo" ) {

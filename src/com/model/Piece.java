@@ -6,6 +6,7 @@ package com.model;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.io.Serializable;
 
 import javax.swing.JLabel;
 import javax.swing.border.CompoundBorder;
@@ -19,12 +20,13 @@ import com.Response;
  * @author Hasina Develop
  *
  */
-public class Piece extends AbstractJPanelModel {
+public class Piece extends AbstractJPanelModel implements Serializable {
 
 	private Case parent;
 	private int type;
 	private int index;
 	private boolean isDame;
+	private boolean isMangeur;
 	
 	public Piece( Case parent, int type, int index ) {
 		this.parent = parent;
@@ -89,6 +91,7 @@ public class Piece extends AbstractJPanelModel {
 	}
 	
 	public void isMangeur () {
+		this.isMangeur = true;
 		this.setBorder(new LineBorder(new Color(255, 0, 0), 35, true));
 	}
 	
@@ -98,6 +101,11 @@ public class Piece extends AbstractJPanelModel {
 		} else {
 			setDame(true);
 		}
+		this.isMangeur = false;
+	}
+	
+	public boolean isAlreadyMangeur() {
+		return this.isMangeur;
 	}
 	
 	public boolean isDame () {

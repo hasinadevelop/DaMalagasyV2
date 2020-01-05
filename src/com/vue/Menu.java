@@ -17,6 +17,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
+/**
+ * @author Hasina Develop
+ *
+ */
 public class Menu extends JMenuBar implements Observable{
 
 	private ArrayList<Observer> listObserver = new ArrayList<Observer> ();
@@ -24,10 +28,10 @@ public class Menu extends JMenuBar implements Observable{
 	public Menu() {
 		this.setBounds(0, 0, 586, 27);
 		
-		JMenu mnGame = new JMenu("Game");
+		JMenu mnGame = new JMenu("Jeu");
 		this.add(mnGame);
 		
-		JMenuItem NewGame = new JMenuItem("New game");
+		JMenuItem NewGame = new JMenuItem("Nouveau");
 		NewGame.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				notifyObserver(new Response("newGame"));
@@ -35,16 +39,26 @@ public class Menu extends JMenuBar implements Observable{
 		});
 		mnGame.add(NewGame);
 		
-		JMenuItem SaveGame = new JMenuItem("Save game");
+		JMenuItem SaveGame = new JMenuItem("Sauvegarder");
+		SaveGame.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				notifyObserver(new Response("saveGame"));
+			}
+		});
 		mnGame.add(SaveGame);
 		
-		JMenuItem mntmLoadGame = new JMenuItem("Load game");
+		JMenuItem mntmLoadGame = new JMenuItem("Charger");
+		mntmLoadGame.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				notifyObserver(new Response("loadGame"));
+			}
+		});
 		mnGame.add(mntmLoadGame);
 		
 		JSeparator separator = new JSeparator();
 		mnGame.add(separator);
 		
-		JMenuItem mntmQuit = new JMenuItem("Quit");
+		JMenuItem mntmQuit = new JMenuItem("Quitter");
 		mntmQuit.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				notifyObserver(new Response("quit"));
@@ -53,6 +67,25 @@ public class Menu extends JMenuBar implements Observable{
 		mntmQuit.setBackground(Color.LIGHT_GRAY);
 		
 		mnGame.add(mntmQuit);
+		
+		JMenu mnAide = new JMenu("Aide");
+		this.add(mnAide);
+		
+		JMenuItem CommentJouer = new JMenuItem("Comment jouer ?");
+		CommentJouer.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				notifyObserver(new Response("aide"));
+			}
+		});
+		mnAide.add(CommentJouer);
+		
+		JMenuItem APropos = new JMenuItem("A propos");
+		APropos.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				notifyObserver(new Response("about"));
+			}
+		});
+		mnAide.add(APropos);
 		
 		
 	}

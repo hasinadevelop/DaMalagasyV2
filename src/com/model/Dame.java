@@ -2,6 +2,7 @@ package com.model;
 
 import java.awt.Color;
 import java.awt.event.MouseListener;
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import com.Response;
@@ -10,7 +11,7 @@ import com.Response;
  * @author Hasina Develop
  *
  */
-public class Dame extends AbstractModel {
+public class Dame extends AbstractModel implements Serializable {
 
 	private ArrayList<ArrayList<Piece>> pieces = new ArrayList<ArrayList<Piece>>();
 	private ArrayList<ArrayList<Case>> cases = new ArrayList<ArrayList<Case>>();
@@ -18,7 +19,7 @@ public class Dame extends AbstractModel {
 	private ArrayList<Case> possibles_coups = new ArrayList<Case>();
 	private ArrayList<Case> possibles_coups_fatals = new ArrayList<Case>();
 	private Response res;
-	private int tour = 1;
+	private int tour = 1, prevTour = -1;
 	private ArrayList<Piece> possibles_pieces_to_attaq = new ArrayList<Piece>();
 	private ArrayList<Piece> piece_a_retirer = new ArrayList<Piece>();
 	private int piecesnoiresnumber = 12;
@@ -154,10 +155,14 @@ public class Dame extends AbstractModel {
 	 * Fonction qui permet de définir la piece actuellement selectionnée
 	 * @param Piece selected_piece
 	 */
-	public void setSelected_piece(Piece selected_piece) {
+	public void setSelected_piece(Piece selected_piece, boolean suiteCoup) {
+		if(this.lastCoups.hasSuite()) {
+			suiteCoup = true;
+		}
+		this.clearPossibles_coups();
 		if ( !this.hasPossibleAttaq() ) {
 			
-			if ( this.selected_piece == null ) {
+			/*if ( this.selected_piece == null ) {*/
 				if ( this.tour == selected_piece.getType() ) {
 					this.selected_piece = selected_piece;
 					this.setPossibles_coups();
@@ -165,38 +170,59 @@ public class Dame extends AbstractModel {
 						pc.isPossibleCoup();
 					}
 				}
-			} else {
+			/*} else {
 				this.selected_piece = null;
 				this.clearPossibles_coups();
-			}	
+			}*/	
 			
 		} else {
 			if ( this.isPossibleAttaq(selected_piece) ) {
-				if ( this.selected_piece == null ) {
+				/*if ( this.selected_piece == null ) {*/
 					if ( this.tour == selected_piece.getType() ) {
 						this.selected_piece = selected_piece;
 						for ( Case pc : this.possibles_coups_fatals ) {
 							pc.isPossibleCoup();
 						}
 					}
-				} else {
+				/*} else {
 					this.selected_piece = null;
 					this.clearPossibles_coups();
-				}
+				}*/
 			} else {
+					// this.selected_piece = null;
+					this.clearPossibles_coups();
+					this.hasPossibleAttaq();
 					for ( Piece p : this.possibles_pieces_to_attaq ) {
 						p.isMangeur();
 					}
 			}
 		}
-			
-		this.notifyObserver(new Response("pc"){
-			public ArrayList<Case> possiblesCoups () {
-				return possibles_coups.size() != 0 ? possibles_coups : possibles_coups_fatals;
-			}
-		});
+		if(!suiteCoup) {
+			this.notifyObserver(new Response("pc"){
+				public ArrayList<Case> possiblesCoups () {
+					return possibles_coups.size() != 0 ? possibles_coups : possibles_coups_fatals;
+				}
+			});
+		} else {
+			this.notifyObserver(new Response("spc"){
+				public ArrayList<Case> possiblesCoups () {
+					return possibles_coups.size() != 0 ? possibles_coups : possibles_coups_fatals;
+				}
+			});
+		}
+		
 	}
 
+	public boolean hasAlreadyMangeur() {
+		boolean res = false;
+		for ( Piece p : this.pieces.get(this.tour) ) {
+			if(p.isAlreadyMangeur()) {
+				res = true;
+				break;
+			}
+		}
+		return res;
+	}
 	
 	public ArrayList<Case> getPossibles_coups() {
 		return possibles_coups;
@@ -595,9 +621,10 @@ public class Dame extends AbstractModel {
 	
 	/**
 	 * Fonction qui permet de faire le deplacement d'une piece avec attaque ou sans attaque
+	 * @param suiteCoup 
 	 * @param Case finish
 	 */
-	public void deplaceSelected_piece(Case finish) {
+	public void deplaceSelected_piece(Case finish, boolean suiteCoup) {
 		if ( this.possibles_coups_fatals.size() != 0 ) {
 			for ( int i=0; i<this.possibles_coups_fatals.size(); i++ ) {
 				if ( this.possibles_coups_fatals.get(i) == finish ) {
@@ -605,7 +632,7 @@ public class Dame extends AbstractModel {
 					for ( int j=0; j<12; j++ ) {
 						boolean coupDame = this.selected_piece.isDame();
 						if ( this.piece_a_retirer.get(i) == this.pieces.get(index).get(j) ) {
-							this.addCoups(((Case) this.selected_piece.getParent()).getI(), ((Case) this.selected_piece.getParent()).getJ(), finish.getI(), finish.getJ(), this.selected_piece, this.pieces.get(index).get(j), coupDame);
+							this.addCoups(((Case) this.selected_piece.getParent()).getI(), ((Case) this.selected_piece.getParent()).getJ(), finish.getI(), finish.getJ(), this.selected_piece, this.pieces.get(index).get(j), suiteCoup, false, coupDame);
 							this.pieces.get(index).get(j).remove();
 							if ( index == 0 ) {
 								this.piecesnoiresnumber--;
@@ -620,13 +647,16 @@ public class Dame extends AbstractModel {
 			this.clearPossibles_coups();
 			
 			if ( this.isPossibleAttaq(this.selected_piece) ) {
+				this.reColor();
+				this.reinit(false);
 				this.selected_piece = null;
-				this.setSelected_piece(finish.getChild());
+				this.setSelected_piece(finish.getChild(), true);
+				this.listCoups.get(listCoups.size()-1).setHasSuite(true);
 				this.notifyObserver(new Response("possibleContinue"){});
 			} else {
 				this.isDame();
 				this.reColor();
-				this.reinit();
+				this.reinit(true);
 			}
 			this.notifyObserver(new Response("winner"){
 				public boolean hasWinner () {
@@ -645,11 +675,11 @@ public class Dame extends AbstractModel {
 			});
 		} else {
 			boolean coupDame = this.selected_piece.isDame();
-			this.addCoups(((Case) this.selected_piece.getParent()).getI(), ((Case) this.selected_piece.getParent()).getJ(), finish.getI(), finish.getJ(), this.selected_piece, null, coupDame);
+			this.addCoups(((Case) this.selected_piece.getParent()).getI(), ((Case) this.selected_piece.getParent()).getJ(), finish.getI(), finish.getJ(), this.selected_piece, null, suiteCoup, false, coupDame);
 			this.selected_piece.setParent(finish);
 			this.isDame();
 			this.reColor();
-			this.reinit();
+			this.reinit(true);
 		}
 	}
 	
@@ -674,9 +704,14 @@ public class Dame extends AbstractModel {
 	/**
 	 * Fonction qui permet de tous reinitialiser après un coup
 	 */
-	public void reinit () {
+	public void reinit (boolean changeTour) {
 		this.clearPossibles_coups();
-		this.tour = this.tour == 1 ? 0 : 1;
+		this.listCoups.get(this.listCoups.size()-1).setPrevTour(this.prevTour);
+		this.prevTour = this.tour;
+		if(changeTour) {
+			this.tour = this.tour == 1 ? 0 : 1;
+		}
+		
 		this.listCoups.get(this.listCoups.size()-1).setNextTour(this.tour);
 		this.selected_piece = null;
 		this.notifyObserver(new Response("changeTour"){
@@ -691,7 +726,6 @@ public class Dame extends AbstractModel {
 	 * @return boolean
 	 */
 	private boolean hasPossibleAttaq () {
-		
 		for ( Piece p : this.pieces.get(this.tour) ) {
 			if ( this.isPossibleAttaq(p) ) {
 				this.possibles_pieces_to_attaq.add(p);
@@ -732,11 +766,12 @@ public class Dame extends AbstractModel {
 	 * @param int je
 	 * @param Piece piece
 	 * @param Piece aretirer
+	 * @param boolean suiteCoup
 	 * @param boolean coupDame
 	 */
-	public void addCoups (int is, int js, int ie, int je, Piece piece, Piece aretirer, boolean coupDame) {
+	public void addCoups (int is, int js, int ie, int je, Piece piece, Piece aretirer, boolean suiteCoup, boolean hasSuite, boolean coupDame) {
 		this.removeRestCoups();
-		this.listCoups.add(new Coup(is, js, ie, je, piece, aretirer, coupDame));
+		this.listCoups.add(new Coup(is, js, ie, je, piece, aretirer, suiteCoup, hasSuite, coupDame));
 		this.lastCoups = this.listCoups.get(this.listCoups.size() - 1);
 		this.notifyObserver(new Response("listCoups"){
 			public ArrayList<String> listCoups () {
@@ -797,12 +832,22 @@ public class Dame extends AbstractModel {
 		Case depart = this.cases.get(is).get(js);
 		Piece piece = coupToRemove.getPiece();
 		if ( !coupToRemove.isCoupDame() ) { piece.setDame(false); }
+		
 		if ( coupToRemove.isCoupFatal() ) {
 			coupToRemove.getPiece_mange().regenere();
+			if ( coupToRemove.getPiece_mange().getType() == 0 ) {
+				this.piecesnoiresnumber++;
+			} else if ( coupToRemove.getPiece_mange().getType() == 1 ) {
+				this.piecesblanchesnumber++;
+			}
+			
 		}
 		piece.setParent(depart);
 		try { this.tour = coupToRemove.getPiece().getType(); }
 		catch (Exception e1) { this.tour = 1; }
+		if( coupToRemove.isSuite() ) {
+			this.selected_piece = piece;
+		}
 		this.notifyObserver(new Response("undo"){
 			public boolean hasPreviousCoup () {
 				return lastCoups.getChaine().equals("< START >") ? false : true;
@@ -810,10 +855,16 @@ public class Dame extends AbstractModel {
 			public boolean hasNextCoup () {
 				return lastCoups == listCoups.get(listCoups.size()-1) ? false : true;
 			}
+			
 		});
+		
 		this.notifyObserver(new Response("changeTour"){
 			public int getTour () {
 				return tour;
+			}
+			
+			public boolean isSuite() {
+				return coupToRemove.isSuite();
 			}
 		});
 	}
@@ -829,11 +880,19 @@ public class Dame extends AbstractModel {
 		Case finish = this.cases.get(ie).get(je);
 		Piece piece = this.lastCoups.getPiece();
 		if ( this.lastCoups.isCoupFatal() ) {
+			if ( this.lastCoups.getPiece_mange().getType() == 0 ) {
+				this.piecesnoiresnumber--;
+			} else if ( this.lastCoups.getPiece_mange().getType() == 1 ) {
+				this.piecesblanchesnumber--;
+			}
 			this.lastCoups.getPiece_mange().remove();
 		}
 		piece.setParent(finish);
 		try { this.tour = this.lastCoups.getNextTour(); }
 		catch (Exception e1) { this.tour = 1; } 
+		this.selected_piece = piece;
+		this.isDame();
+		
 		this.notifyObserver(new Response("redo"){
 			public boolean hasNextCoup () {
 				return lastCoups == listCoups.get(listCoups.size()-1) ? false : true;
@@ -845,6 +904,10 @@ public class Dame extends AbstractModel {
 		this.notifyObserver(new Response("changeTour"){
 			public int getTour () {
 				return tour;
+			}
+			
+			public boolean isSuite() {
+				return lastCoups.hasSuite();
 			}
 		});
 	}
@@ -866,6 +929,14 @@ public class Dame extends AbstractModel {
 	 */
 	public int getTour() {
 		return tour;
+	}
+
+	public ArrayList<Coup> getListCoups() {
+		return this.listCoups;
+	}
+	
+	public Coup getLastCoups() {
+		return this.lastCoups;
 	}
 
 }
